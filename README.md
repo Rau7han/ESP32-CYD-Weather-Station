@@ -1,150 +1,218 @@
-# Bengaluru CYD Weather Station — v3.1
+# ESP32 CYD Weather Station
 
-A 320×240 landscape weather station for an ESP32-WROOM-32 CYD with an
-ILI9341 display, XPT2046 resistive touch, and 4 MB flash.
+<p align="center">
+  <img src="images/Teal%20Weather%20Station%20Product%20Shot.png" alt="ESP32 CYD weather station product view" width="720">
+</p>
 
-![Home](images/0-home.png)
-![Forecast](images/1-forecast.png)
-![Conditions](images/2-conditions.png)
-![System](images/3-system.png)
+<p align="center">
+  A polished 320×240 touchscreen weather dashboard for the ESP32 Cheap Yellow Display (CYD).
+</p>
 
-The four touch pages show current weather, four forecast days, conditions, and
-system information. Home includes a large moon icon with only its illumination
-percentage underneath. The clock, sunrise/sunset, and forecast days use Bengaluru
-IST (UTC+05:30). UV is the current hourly Open-Meteo/CAMS model value.
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-ESP32-blue?style=flat-square" alt="ESP32">
+  <img src="https://img.shields.io/badge/display-ILI9341-00a6a6?style=flat-square" alt="ILI9341">
+  <img src="https://img.shields.io/badge/touch-XPT2046-00a6a6?style=flat-square" alt="XPT2046">
+  <img src="https://img.shields.io/badge/Arduino%20core-3.2.0-00979D?style=flat-square" alt="Arduino ESP32 core 3.2.0">
+  <img src="https://img.shields.io/badge/release-v3.1-informational?style=flat-square" alt="Release v3.1">
+</p>
 
-## Start here
+## Overview
 
-Read [START_HERE.md](START_HERE.md) for the short setup and GitHub-upload checklist.
-All project-specific downloads are in this repository: the four configured library
-ZIPs, the LittleFS uploader VSIX, source, and 66 runtime assets. Arduino IDE and the
-Espressif ESP32 3.2.0 board package are separate platform prerequisites installed
-once. A first-time setup therefore still needs those platform downloads.
+This project turns an ESP32-WROOM-32 CYD into a standalone internet-connected
+weather station. It combines live current conditions, a four-day forecast,
+weather icons, moon phase, sunrise/sunset, wind direction, UV, and system
+status in a touch-friendly landscape interface.
 
-## Arduino IDE setup
+The firmware is configured for a **320×240 ILI9341 CYD with XPT2046 resistive
+touch and 4 MB flash**. The default location is Bengaluru, India, using IST
+(UTC+05:30), but the location and update settings can be changed in
+`All_Settings.h`.
+
+> **New to the project?** Start with [START_HERE.md](START_HERE.md) for the
+> short upload checklist, then use the detailed setup below when configuring
+> Arduino IDE.
+
+## See it in action
+
+### Touchscreen pages
+
+| Home | Forecast |
+| --- | --- |
+| ![Home page](images/0-home.png) | ![Four-day forecast page](images/1-forecast.png) |
+
+| Conditions | System |
+| --- | --- |
+| ![Conditions page](images/2-conditions.png) | ![System page](images/3-system.png) |
+
+### Product views
+
+<p align="center">
+  <img src="images/Angled%20Weather%20Dashboard%20Display%20Module.png" alt="Angled view of the weather dashboard" width="48%">
+  <img src="images/Teal%20Weather%20Station%20Dashboard.png" alt="Teal weather station dashboard" width="48%">
+</p>
+
+<p align="center">
+  <img src="images/Turquoise%20Four-Day%20Weather%20Station.png" alt="Four-day forecast product view" width="48%">
+  <img src="images/Teal%20Weather%20Display%20with%20System%20Information.png" alt="System information product view" width="48%">
+</p>
+
+All images are stored in the [`images/`](images/) directory so the README
+continues to render when the repository is cloned or uploaded to GitHub.
+
+## Features
+
+- Live current conditions from OpenWeather.
+- Four-day forecast grouped by local calendar day.
+- Temperature, feels-like temperature, humidity, pressure, wind, rain, and UV.
+- Sunrise, sunset, local clock, moon phase, and weather condition icons.
+- Four touch pages: **Home**, **Forecast**, **Conditions**, and **System**.
+- Tap navigation, left/right swipes, and automatic page cycling.
+- Touchscreen calibration saved in ESP32 NVS.
+- HTTPS certificate verification and time synchronization before API requests.
+- LittleFS assets for fonts, weather icons, wind arrows, moon phases, and splash screen.
+- Retains valid old weather data during temporary network or API failures.
+
+## Hardware
+
+| Part | Required configuration |
+| --- | --- |
+| Board | ESP32-WROOM-32 CYD / ESP32 Dev Module |
+| Display | 2.8-inch 320×240 ILI9341 TFT |
+| Touch | XPT2046 resistive touchscreen |
+| Flash | 4 MB |
+| Wi-Fi | 2.4 GHz |
+| Power | USB |
+
+The verified display wiring uses TFT_eSPI setup
+[`Setup801_ESP32_CYD_ILI9341_240x320.h`](Setup801_ESP32_CYD_ILI9341_240x320.h).
+An ST7789 reference setup is also included, but the release build is tested on
+the ILI9341 hardware.
+
+## Quick start
+
+### Requirements
+
+- Arduino IDE **2.2.1 or newer**
+- ESP32 board package **3.2.0** by Espressif Systems
+- A 2.4 GHz Wi-Fi network
+- An activated OpenWeather API key
+- A compatible ESP32 CYD board
 
 ### 1. Install the ESP32 board package
 
-Use Arduino IDE 2.2.1 or newer. In Preferences, add this Boards Manager URL:
+In Arduino IDE, open **Preferences** and add this Boards Manager URL:
 
-```
+```text
 https://espressif.github.io/arduino-esp32/package_esp32_index.json
 ```
 
-In Boards Manager, install **esp32 by Espressif Systems, version 3.2.0**.
-See the [official ESP32 installation guide](https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html).
+Then open **Boards Manager** and install **esp32 by Espressif Systems,
+version 3.2.0**. See the [official ESP32 installation guide][esp32-install].
 
-### 2. Install the four bundled libraries
+### 2. Install the bundled libraries
 
-For each ZIP in `libraries/`, choose **Sketch → Include Library → Add .ZIP Library**:
+Use **Sketch → Include Library → Add .ZIP Library** for each archive in
+[`libraries/`](libraries/):
 
 | Library | Bundled version |
 | --- | --- |
-| TFT_eSPI, already configured for the CYD ILI9341 | 2.5.44 |
+| TFT_eSPI, configured for the CYD ILI9341 | 2.5.44 |
 | TJpg_Decoder | 1.1.0 |
 | ArduinoJson | 7.4.2 |
 | XPT2046_Touchscreen | 1.4 |
 
-These ZIPs contain the exact tested library runtime sources and their licensing
-notices. Optional upstream examples and documentation were omitted to reduce size.
-Sources and SHA-256 hashes are recorded in `libraries/manifest.json`.
+The bundled TFT_eSPI library already contains the tested CYD configuration. If
+you use another TFT_eSPI installation, apply the supplied
+`Setup801_ESP32_CYD_ILI9341_240x320.h` to its `User_Setup.h` and keep the
+default `#include <User_Setup.h>` selected in `User_Setup_Select.h`.
 
-The bundled TFT_eSPI `User_Setup.h` already matches
-`Setup801_ESP32_CYD_ILI9341_240x320.h`. If another TFT_eSPI installation exists,
-use the bundled one, or replace that installation's `User_Setup.h` with this
-setup file. Keep the default `#include <User_Setup.h>` selected in
-`User_Setup_Select.h`. Reapply this configuration after updating TFT_eSPI.
-The alternative ST7789 setup is included as a reference; the hardware verified
-for this release uses ILI9341.
+### 3. Configure credentials
 
-### 3. Open the complete sketch folder
+Copy:
+
+```text
+Esp32_CYD_TFT_eSPI_OpenWeather_LittleFS_v02/Secrets.example.h
+```
+
+to `Secrets.h` in the same folder, then enter your Wi-Fi credentials and API
+key. `Secrets.h` is ignored by Git and must never be committed. Location,
+timezone, pins, and refresh intervals are configured in `All_Settings.h`.
+
+### 4. Open the complete sketch
 
 Open this file in Arduino IDE:
 
-```
+```text
 Esp32_CYD_TFT_eSPI_OpenWeather_LittleFS_v02/
-  Esp32_CYD_TFT_eSPI_OpenWeather_LittleFS_v02.ino
+└── Esp32_CYD_TFT_eSPI_OpenWeather_LittleFS_v02.ino
 ```
 
-Keep every `.h`, `.cpp`, `.ino`, and the `data/` directory together in that folder.
-Arduino IDE automatically compiles its supporting source files.
+Keep all `.ino`, `.h`, `.cpp`, and `data/` files together. Arduino IDE will
+compile the supporting source files automatically.
 
-### 4. Enter your own Wi-Fi and API credentials
+### 5. Select these board settings
 
-Copy `Secrets.example.h` to **`Secrets.h` in the same sketch folder**. Edit only
-that private copy to enter your 2.4 GHz Wi-Fi name/password and an activated
-OpenWeather API key. The second API key is optional. `Secrets.h` is ignored by
-Git; the included example contains placeholders and supports compile-only checks.
-
-Location, timezone, intervals, and hardware pins are in `All_Settings.h`.
-The default location is Bengaluru: 12.9719 N, 77.5937 E.
-
-### 5. Select these Tools settings
-
-| Setting | Value |
+| Arduino IDE option | Value |
 | --- | --- |
 | Board | ESP32 Dev Module |
 | CPU Frequency | 240 MHz |
-| Flash Size | 4MB (32Mb) |
+| Flash Size | 4 MB (32Mb) |
 | Flash Mode | DIO |
 | Flash Frequency | 40 MHz |
 | Partition Scheme | No OTA (2MB APP/2MB SPIFFS) |
 | PSRAM | Disabled |
 | Upload Speed | 115200 |
 | Erase All Flash Before Sketch Upload | Disabled |
-| Port | Your connected CYD serial port |
 
-The partition menu uses the name SPIFFS; this firmware mounts that data partition
-as LittleFS. The filesystem size is 1,966,080 bytes, starting at `0x210000`.
+The menu calls the data partition **SPIFFS**, but this firmware mounts it as
+LittleFS. The selected partition must provide the expected filesystem layout.
 
-### 6. Upload both the sketch and the filesystem
+### 6. Upload the sketch and LittleFS data
 
-1. Click **Verify**, then **Upload** in Arduino IDE.
-2. Install the bundled `tools/littlefs-uploader/arduino-littlefs-upload-1.6.3.vsix`.
-   Copy it into `~/.arduinoIDE/plugins/` on Linux/macOS, or
-   `C:\Users\<username>\.arduinoIDE\plugins\` on Windows, then restart the IDE.
-   See `tools/littlefs-uploader/INSTALL.txt`. This is the unmodified official
-   [LittleFS uploader](https://github.com/earlephilhower/arduino-littlefs-upload).
-3. Close Serial Monitor. Keep the same board, partition scheme, port, and sketch
-   selected. Open the command palette with **Ctrl+Shift+P** (macOS: Cmd+Shift+P)
-   and run **Upload LittleFS to Pico/ESP8266/ESP32**.
-4. Reset the board. It uploads the sketch's `data/` folder: all 66 fonts, moon,
-   wind, weather, and splash assets are included in this repository.
+1. Click **Verify**, then **Upload**.
+2. Install the bundled
+   `tools/littlefs-uploader/arduino-littlefs-upload-1.6.3.vsix`. Installation
+   instructions are in [`tools/littlefs-uploader/INSTALL.txt`](tools/littlefs-uploader/INSTALL.txt).
+3. Close Serial Monitor and keep the same board, port, and partition settings.
+4. Open the command palette with **Ctrl+Shift+P** (macOS: **Cmd+Shift+P**).
+5. Run **Upload LittleFS to Pico/ESP8266/ESP32**.
+6. Reset the board.
 
-Serial Monitor at **115200 baud** reports startup, asset checks, update results,
-and touch calibration. The System page also shows API/network status.
+The uploader sends the sketch's `data/` directory, including the fonts, moon
+phases, wind arrows, weather icons, and splash image. Serial Monitor runs at
+**115200 baud** and reports startup, asset checks, network updates, retries,
+and touch calibration.
 
 ## Touch controls
 
-- Tap the footer labels to open Home, Forecast, Conditions, or System.
-- Swipe left/right to change pages; a tap on the left/right body goes back/forward.
-- Hold any page for two seconds, or use System → Calibrate, then hold and release
-  each of four targets. Calibration persists in NVS.
-- System → Auto enables cycling every 6.5 seconds; the choice survives reboot.
-- System → Refresh requests a weather update. Repeat requests while busy are
-  ignored. The System countdown shows the next update or retry.
+- Tap the footer labels to open **Home**, **Forecast**, **Conditions**, or **System**.
+- Swipe left or right to change pages.
+- Tap the left or right side of the page to move backward or forward.
+- Hold any page for two seconds, or choose **System → Calibrate**, to recalibrate touch.
+- Hold and release each of the four calibration targets. Calibration persists in NVS.
+- **System → Auto** cycles pages every 6.5 seconds and survives reboot.
+- **System → Refresh** requests an immediate weather update.
 
-The TFT uses HSPI: MOSI 13, MISO 12, CLK 14, CS 15, DC 2, backlight 21.
-Touch uses its own VSPI bus: MOSI 32, MISO 39, CLK 25, CS 33. IRQ 36 is configured
-as input; pressure is polled. Both display and touch use landscape rotation 1.
+The System page shows API/network status and the countdown to the next update or
+retry. Repeated refresh requests are ignored while an update is already running.
 
-## Weather data and behavior
+## Weather data
 
-- Current observations: OpenWeather `/data/2.5/weather`.
-- Forecast: OpenWeather `/data/2.5/forecast`. Each of the next four IST calendar
-  days aggregates its available 3-hour samples for min/max and rain total.
-  Description, pressure, humidity, and wind use the sample nearest local noon.
-- UV: Open-Meteo air-quality endpoint, `hourly=uv_index&timeformat=unixtime`.
-  The selected sample contains the current UTC hour. UV can be zero at night.
-- Refresh: every 15 minutes; retry after 60 seconds on failure. Valid old data is
-  retained, missing values show dashes, and old observations are marked stale.
-- HTTPS verifies certificates using the included public trust anchors. Time
-  synchronization must succeed before HTTPS requests run.
+- **Current conditions:** OpenWeather `/data/2.5/weather`.
+- **Forecast:** OpenWeather `/data/2.5/forecast`. The next four local calendar
+  days aggregate available three-hour samples for minimum/maximum temperature
+  and rain. Description, pressure, humidity, and wind use the sample nearest
+  local noon.
+- **UV:** Open-Meteo air-quality data using `hourly=uv_index&timeformat=unixtime`.
+  UV can be zero at night.
+- **Refresh:** every 15 minutes, with a 60-second retry after a failure.
+- **Security:** HTTPS uses the included public trust anchors. NTP time
+  synchronization must succeed before HTTPS requests begin.
 
-## Optional command-line build and tests
+## Optional build and tests
 
-Install [Arduino CLI](https://docs.arduino.cc/arduino-cli/installation/) and the
-same ESP32 3.2.0 board core. Then, from the repository root:
+Install [Arduino CLI][arduino-cli] and the same ESP32 3.2.0 board core. From
+the repository root:
 
 ```sh
 arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
@@ -153,51 +221,60 @@ python3 tools/build.py
 python3 tools/test.py
 ```
 
-Python 3.9+ is used for these optional helpers; host tests also need `g++` and a
-C library providing `strlcpy` (verified on this Linux workstation). `build.py`
-checks library hashes, extracts the bundled sources, and compiles with the same
-board settings listed above. Generated files stay under `.build/`.
+Python 3.9+, `g++`, and a C library providing `strlcpy` are needed for the
+optional host checks. Generated files remain under `.build/`.
 
-## Source organization and publishing
+## Project structure
 
-- `DisplayUI.*`: page layouts, bitmap rendering, splash, asset checks.
-- `WeatherNetwork.*`: background HTTPS updates, retry timing, API-key fallback.
-- `WeatherJson.*`, `WeatherModel.*`: JSON validation, forecasts, gestures/calibration.
-- `NTP_Time.h`, `MoonPhase.ino`: IST formatting and lunar calculations.
-- `All_Settings.h`, `Secrets.example.h`: public settings and credential template.
-- `data/`: all 66 runtime asset files.
+| Path | Purpose |
+| --- | --- |
+| `Esp32_CYD_TFT_eSPI_OpenWeather_LittleFS_v02/DisplayUI.*` | Pages, rendering, splash screen, and asset checks |
+| `Esp32_CYD_TFT_eSPI_OpenWeather_LittleFS_v02/WeatherNetwork.*` | HTTPS updates, retries, and API-key fallback |
+| `Esp32_CYD_TFT_eSPI_OpenWeather_LittleFS_v02/WeatherJson.*` | API response validation and parsing |
+| `Esp32_CYD_TFT_eSPI_OpenWeather_LittleFS_v02/WeatherModel.*` | Forecast model, gestures, and calibration state |
+| `Esp32_CYD_TFT_eSPI_OpenWeather_LittleFS_v02/data/` | Runtime fonts, icons, moon phases, wind arrows, and splash image |
+| `libraries/` | Tested library archives and SHA-256 manifest |
+| `tests/` | Host-side weather JSON and model tests |
+| `images/` | README screenshots and project photos |
 
-Screenshot servers, framebuffer capture, unused GfxUi files, and serial bench
-commands have been removed from the production firmware. The images above are
-captures from the previous verified UI build with the same page layout.
+## Troubleshooting
 
-Publish the contents of this repository folder, including `data/`, `libraries/`,
-`LICENSE`, and `.gitignore`. Each builder creates their own private `Secrets.h`.
-No compiled firmware, personal credentials, machine-specific paths, or old private
-build backups are included in the release archive.
+### Blank screen after upload
+
+Use the bundled configured TFT_eSPI library, or replace the installed
+`User_Setup.h` with `Setup801_ESP32_CYD_ILI9341_240x320.h`. Also confirm:
+
+- **No OTA (2MB APP/2MB SPIFFS)**
+- **DIO**
+- **40 MHz**
+- **4 MB flash**
+
+The firmware checks the TFT setup and partition selection at compile time.
+
+### `FATAL: LittleFS mount failed`
+
+Verify the partition scheme, then upload the complete `data/` directory again
+with the same board, port, and partition selection used for the sketch upload.
+
+### No weather data
+
+Confirm that `Secrets.h` contains valid 2.4 GHz Wi-Fi credentials and an
+activated API key. Wait for NTP synchronization before expecting the first
+HTTPS request. The System page and Serial Monitor show the current status.
 
 ## Credits and license
 
 This project adapts Michael Fehr's
-[ESP32 CYD Weather Station with Forecast](https://github.com/AndroidCrypto/ESP32_CYD_Weather_Station_With_Forecast),
-Bodmer's TFT/LittleFS graphics work, and ThingPulse/Daniel Eichhorn's
-[color weather station](https://github.com/ThingPulse/esp8266-weather-station-color).
-The landscape geometry follows the supplied HTML reference.
+[ESP32 CYD Weather Station with Forecast][michael-fehr], Bodmer's TFT/LittleFS
+graphics work, and ThingPulse/Daniel Eichhorn's
+[color weather station][thingpulse]. The landscape geometry follows the
+supplied HTML reference.
 
-See `LICENSE`, `THIRD_PARTY_NOTICES.txt`, and the bundled libraries' original
-licensing notices. API data and services retain their providers' terms.
+See [`LICENSE`](LICENSE), [`THIRD_PARTY_NOTICES.txt`](THIRD_PARTY_NOTICES.txt),
+and the bundled libraries' original licensing notices. API data and services
+remain subject to their providers' terms.
 
-
-## Blank screen after a manual Arduino IDE upload
-
-Library Manager's stock TFT_eSPI setup uses generic wiring. Replace the installed
-TFT_eSPI library's `User_Setup.h` with the supplied Setup801 CYD file, or install
-the bundled configured TFT_eSPI ZIP. A library update can overwrite that setting.
-This release now checks the selected TFT setup at compile time.
-
-In Tools, select **No OTA (2MB APP/2MB SPIFFS)**, **DIO**, **40 MHz**, and **4 MB**.
-Changing the partition layout requires uploading both the sketch and `data/`
-again. The firmware now refuses to compile with the default partition scheme.
-If Serial Monitor reports `FATAL: LittleFS mount failed`, verify this setting and
-upload the full LittleFS data directory with the same board/partition selection.
-Create your private `Secrets.h` for Wi-Fi and API access; keep the example generic.
+[arduino-cli]: https://docs.arduino.cc/arduino-cli/installation/
+[esp32-install]: https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html
+[michael-fehr]: https://github.com/AndroidCrypto/ESP32_CYD_Weather_Station_With_Forecast
+[thingpulse]: https://github.com/ThingPulse/esp8266-weather-station-color
