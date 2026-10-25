@@ -1,17 +1,38 @@
 # Bengaluru CYD Weather Station — v3.1
 
-A 320×240 landscape weather station for an ESP32-WROOM-32 CYD with an
-ILI9341 display, XPT2046 resistive touch, and 4 MB flash.
+![ESP32 CYD weather station](images/Teal%20Weather%20Station%20Product%20Shot.png)
 
-![Home](images/0-home.png)
-![Forecast](images/1-forecast.png)
-![Conditions](images/2-conditions.png)
-![System](images/3-system.png)
+A compact, touch-enabled weather dashboard for the ESP32-WROOM-32 Cheap Yellow
+Display (CYD). It uses the 320×240 ILI9341 display, XPT2046 resistive touch,
+4 MB flash, HTTPS weather updates, and a LittleFS asset bundle.
 
-The four touch pages show current weather, four forecast days, conditions, and
-system information. Home includes a large moon icon with only its illumination
-percentage underneath. The clock, sunrise/sunset, and forecast days use Bengaluru
-IST (UTC+05:30). UV is the current hourly Open-Meteo/CAMS model value.
+## Highlights
+
+- Four touch pages for home conditions, a four-day forecast, detailed
+  conditions, and system status.
+- OpenWeather current conditions and forecast data, plus hourly UV data from
+  Open-Meteo/CAMS.
+- Bengaluru-ready IST time, sunrise/sunset, forecast-day grouping, moon phase,
+  wind direction, and rain totals.
+- Offline-friendly display behavior: valid old data is retained, missing values
+  show as dashes, and stale observations are identified.
+- Persistent touch calibration, automatic page cycling, manual refresh, retry
+  timing, and certificate-verified HTTPS.
+
+The default configuration is Bengaluru (12.9719 N, 77.5937 E), but the
+location, timezone, refresh intervals, and hardware settings can be changed in
+`All_Settings.h`.
+
+### Screen pages
+
+![Home page](images/0-home.png)
+![Forecast page](images/1-forecast.png)
+![Conditions page](images/2-conditions.png)
+![System page](images/3-system.png)
+
+The Home page includes a large moon icon with its illumination percentage. The
+clock, sunrise/sunset, and forecast days use Bengaluru IST (UTC+05:30) by
+default. UV is the current hourly Open-Meteo/CAMS model value.
 
 ## Start here
 
@@ -168,8 +189,9 @@ board settings listed above. Generated files stay under `.build/`.
 - `data/`: all 66 runtime asset files.
 
 Screenshot servers, framebuffer capture, unused GfxUi files, and serial bench
-commands have been removed from the production firmware. The images above are
-captures from the previous verified UI build with the same page layout.
+commands have been removed from the production firmware. The screen images above
+show the four firmware pages; the product image at the top provides a quick
+visual overview of the project.
 
 Publish the contents of this repository folder, including `data/`, `libraries/`,
 `LICENSE`, and `.gitignore`. Each builder creates their own private `Secrets.h`.
