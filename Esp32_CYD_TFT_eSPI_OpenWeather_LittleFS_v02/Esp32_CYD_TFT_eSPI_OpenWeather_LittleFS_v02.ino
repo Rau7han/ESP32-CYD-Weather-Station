@@ -36,6 +36,10 @@ int calibrationStep = 0, calibrationRaw[4][2] = {};
 uint32_t calibrationStarted = 0, calibrationPressStart = 0;
 long calibrationSumX = 0, calibrationSumY = 0;
 int calibrationSamples = 0;
+bool touchRearm = true;
+bool candidatePressed = false, stablePressed = false;
+uint32_t candidateSince = 0;
+bool touchDiagnostics = false;
 bool fingerDown = false;
 int startX = 0, startY = 0, endX = 0, endY = 0;
 uint32_t fingerStart = 0, lastFingerSeen = 0;
@@ -51,11 +55,17 @@ void changePage(int next) {
   page = wrapPage(next); dirty = true; lastPageChange = millis();
   Serial.printf("PAGE %d %s\n", page, page == 0 ? "Inicio" : page == 1 ? "Previsao" : page == 2 ? "Condicoes" : "Sistema");
 }
+void stopCalibration(const char* reason) {
+  calibrating = false; fingerDown = false; touchRearm = false;
+  dirty = true; lastPageChange = millis();
+  Serial.printf("CALIBRACAO %s\n", reason);
+}
 void startCalibration() {
   calibrating = true; calibrationStep = 0; calibrationStarted = millis();
   calibrationWaitRelease = true; calibrationFailed = false;
   calibrationSamples = 0; calibrationPressStart = 0; fingerDown = false;
-  renderCalibration(0); Serial.println("CALIBRACAO iniciada");
+  renderCalibration(0);
+  Serial.println("CALIBRACAO iniciada. Pressione 0,2s e SOLTE cada alvo. Serial x cancela.");
 }
 void handleGesture(int x0, int y0, int x1, int y1) {
   lastPageChange = millis();
@@ -69,7 +79,7 @@ void handleGesture(int x0, int y0, int x1, int y1) {
 }
 void calibrateSample(bool pressed, const TS_Point& raw) {
   if (millis() - calibrationStarted > 90000) {
-    calibrating = false; dirty = true; lastPageChange = millis(); Serial.println("CALIBRACAO esgotou tempo"); return;
+    stopCalibration("esgotou tempo"); return;
   }
   if (calibrationWaitRelease) {
     if (!pressed) {
@@ -80,7 +90,7 @@ void calibrateSample(bool pressed, const TS_Point& raw) {
         if (fitTouchCalibration(calibrationRaw, result)) {
           touchCalibration = result;
           touchPreferences.putBytes("affine", &touchCalibration, sizeof(touchCalibration));
-          calibrating = false; dirty = true; lastPageChange = millis(); Serial.println("CALIBRACAO salva"); return;
+          stopCalibration("salva"); return;
         }
         calibrationStep = 0; calibrationFailed = true; Serial.println("CALIBRACAO rejeitada; tentar novamente");
       }
@@ -93,7 +103,7 @@ void calibrateSample(bool pressed, const TS_Point& raw) {
   }
   if (!calibrationSamples) calibrationPressStart = millis();
   calibrationSumX += raw.x; calibrationSumY += raw.y; ++calibrationSamples;
-  if (millis() - calibrationPressStart >= 350 && calibrationSamples >= 8) {
+  if (millis() - calibrationPressStart >= 160 && calibrationSamples >= 4) {
     calibrationRaw[calibrationStep][0] = calibrationSumX / calibrationSamples;
     calibrationRaw[calibrationStep][1] = calibrationSumY / calibrationSamples;
     Serial.printf("CALIBRACAO ponto=%d bruto=%d,%d\n", calibrationStep,
@@ -101,17 +111,46 @@ void calibrateSample(bool pressed, const TS_Point& raw) {
     ++calibrationStep; calibrationWaitRelease = true;
   }
 }
+void handleSerialCommands() {
+  while (Serial.available()) {
+    const char command = static_cast<char>(Serial.read());
+    if (command == 'c' || command == 'C') {
+      if (touchReady) startCalibration();
+      else Serial.println("TOUCH indisponivel");
+    } else if (command == 'x' || command == 'X') {
+      if (calibrating) stopCalibration("cancelada");
+    } else if (command == 't' || command == 'T') {
+      touchDiagnostics = !touchDiagnostics;
+      Serial.printf("TOUCH diagnostico=%d\n", touchDiagnostics);
+    }
+  }
+}
 void pollTouch() {
   if (!touchReady) return;
   static uint32_t lastPoll = 0;
   if (millis() - lastPoll < 12) return;
   lastPoll = millis();
-  TS_Point raw; bool pressed = touchPanel.touched();
-  if (pressed) { raw = touchPanel.getPoint(); pressed = raw.z >= 200; }
-  if (calibrating) { calibrateSample(pressed, raw); return; }
-  if (pressed) {
+  TS_Point raw = {0, 0, 0};
+  bool sensed = touchPanel.touched();
+  if (sensed) { raw = touchPanel.getPoint(); sensed = raw.z >= 200; }
+  const uint32_t now = millis();
+  if (sensed != candidatePressed) { candidatePressed = sensed; candidateSince = now; }
+  if (stablePressed != candidatePressed &&
+      now - candidateSince >= (candidatePressed ? 48UL : 72UL)) {
+    stablePressed = candidatePressed;
+    if (touchDiagnostics) Serial.printf("TOUCH %s\n", stablePressed ? "PRESSIONADO" : "SOLTO");
+  }
+  static uint32_t lastDiagnostic = 0;
+  if ((calibrating || touchDiagnostics) && now - lastDiagnostic >= 1000) {
+    lastDiagnostic = now;
+    Serial.printf("TOUCH RAW x=%d y=%d z=%d sensed=%d stable=%d etapa=%d espera_solta=%d\n",
+      raw.x, raw.y, raw.z, sensed, stablePressed, calibrationStep, calibrationWaitRelease);
+  }
+  if (calibrating) { calibrateSample(stablePressed, raw); return; }
+  if (!touchRearm) { if (!stablePressed) touchRearm = true; return; }
+  if (stablePressed) {
     int x, y; mapTouch(touchCalibration, raw.x, raw.y, x, y);
-    lastFingerSeen = millis(); endX = x; endY = y;
+    lastFingerSeen = now; endX = x; endY = y;
     if (!fingerDown) { fingerDown = true; fingerStart = millis(); startX = x; startY = y; }
     if (millis() - fingerStart > 2000 && abs(endX - startX) < 20 && abs(endY - startY) < 20) startCalibration();
   } else if (fingerDown && millis() - lastFingerSeen > 70) {
@@ -138,14 +177,17 @@ void setup() {
   touchReady = touchPanel.begin(touchSPI); touchPanel.setRotation(TOUCH_ROTATION);
   touchPreferences.begin("cyd-touch-v3", false);
   autoCycle = touchPreferences.getBool("auto", false);
-  if (touchPreferences.getBytesLength("affine") == sizeof(TouchCalibration))
+  if (touchPreferences.isKey("affine") &&
+      touchPreferences.getBytesLength("affine") == sizeof(TouchCalibration))
     touchPreferences.getBytes("affine", &touchCalibration, sizeof(touchCalibration));
-  Serial.printf("TOUCH ready=%d / own SPI bus / long press to calibrate\n", touchReady);
+  Serial.printf("TOUCH ready=%d / SPI dedicado / segure 2s ou envie c\n", touchReady);
+  Serial.println("SERIAL: c=calibrar, x=cancelar, t=diagnostico de toque");
   WiFi.mode(WIFI_STA); WiFi.setSleep(false); WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD); initClock(); startWeatherNetwork();
   delay(600); lastPageChange = millis(); dirty = true;
 }
 void loop() {
+  handleSerialCommands();
   pollTouch();
   WeatherState latest; copyWeatherState(latest);
   if (latest.generation != weather.generation) {
