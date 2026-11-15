@@ -201,7 +201,7 @@ void systemPage(const WeatherState& s, bool autoCycle, bool refreshing) {
   header("Informacoes do sistema");
   text("Estacao meteorologica", 12, 29, 296, WHITE, 2, 1);
   const String labels[] = {"Tela", "Relogio", "Wi-Fi", "Tempo / previsao", "UV (Open-Meteo)", "Arquivos / heap", "Medicao / UV", "Proxima atualiz."};
-  const uint32_t remaining = weatherNextAtualizarSeconds();
+  const uint32_t remaining = weatherNextRefreshSeconds();
   char countdown[24];
   snprintf(countdown, sizeof(countdown), "In %02lu:%02lu", static_cast<unsigned long>(remaining / 60), static_cast<unsigned long>(remaining % 60));
   const String values[] = {"320 x 240 / touch", clockValid() ? localTimeText(time(nullptr), "%H:%M:%S") + " " + TIMEZONE_POSIX : "Sincronizando NTP", WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) + " dBm" : "Desconectado", httpText(s.currentHttp) + " / " + httpText(s.forecastHttp) + " / key " + String(s.activeKey), httpText(s.uvHttp) + " / CAMS", String(fileCount) + " files / " + String(ESP.getFreeHeap() / 1024) + " KB", (s.current.valid ? localTimeText(s.current.point.timestamp) : "--:--") + " / " + localTimeText(s.uvTimestamp), refreshing ? "Atualizando" : remaining ? String(countdown) : "Iniciando..."};
