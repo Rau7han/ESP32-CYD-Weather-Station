@@ -137,5 +137,5 @@ uint32_t weatherNextRefreshSeconds() {
 void startWeatherNetwork() {
   stateMutex = xSemaphoreCreateMutex();
   if (!stateMutex || xTaskCreatePinnedToCore(networkTask, "weather", 12288, nullptr, 1, nullptr, 0) != pdPASS)
-    Serial.println("ERROR: could not start weather worker");
+    Serial.println("ERRO: tarefa meteorologica nao iniciou");
 }
