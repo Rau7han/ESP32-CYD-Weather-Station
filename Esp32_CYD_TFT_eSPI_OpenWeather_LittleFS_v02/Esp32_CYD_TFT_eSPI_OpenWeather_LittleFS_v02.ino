@@ -16,7 +16,7 @@
 #include "NTP_Time.h"
 #include "DisplayUI.h"
 
-#ifndef ARDUINO_PARTITION_no_ota
+#if !defined(ARDUINO_PARTITION_no_ota) && !defined(PLATFORMIO)
 #error "In Arduino IDE Tools > Partition Scheme select No OTA (2MB APP/2MB SPIFFS), then upload both the sketch and LittleFS data."
 #endif
 
@@ -49,13 +49,13 @@ void setAutoCycle(bool enabled) {
 }
 void changePage(int next) {
   page = wrapPage(next); dirty = true; lastPageChange = millis();
-  Serial.printf("PAGE %d %s\n", page, page == 0 ? "Home" : page == 1 ? "Forecast" : page == 2 ? "Conditions" : "System");
+  Serial.printf("PAGE %d %s\n", page, page == 0 ? "Inicio" : page == 1 ? "Previsao" : page == 2 ? "Condicoes" : "Sistema");
 }
 void startCalibration() {
   calibrating = true; calibrationStep = 0; calibrationStarted = millis();
   calibrationWaitRelease = true; calibrationFailed = false;
   calibrationSamples = 0; calibrationPressStart = 0; fingerDown = false;
-  renderCalibration(0); Serial.println("CALIBRATION started");
+  renderCalibration(0); Serial.println("CALIBRACAO iniciada");
 }
 void handleGesture(int x0, int y0, int x1, int y1) {
   lastPageChange = millis();
@@ -69,7 +69,7 @@ void handleGesture(int x0, int y0, int x1, int y1) {
 }
 void calibrateSample(bool pressed, const TS_Point& raw) {
   if (millis() - calibrationStarted > 90000) {
-    calibrating = false; dirty = true; lastPageChange = millis(); Serial.println("CALIBRATION timed out"); return;
+    calibrating = false; dirty = true; lastPageChange = millis(); Serial.println("CALIBRACAO esgotou tempo"); return;
   }
   if (calibrationWaitRelease) {
     if (!pressed) {
@@ -80,9 +80,9 @@ void calibrateSample(bool pressed, const TS_Point& raw) {
         if (fitTouchCalibration(calibrationRaw, result)) {
           touchCalibration = result;
           touchPreferences.putBytes("affine", &touchCalibration, sizeof(touchCalibration));
-          calibrating = false; dirty = true; lastPageChange = millis(); Serial.println("CALIBRATION saved"); return;
+          calibrating = false; dirty = true; lastPageChange = millis(); Serial.println("CALIBRACAO salva"); return;
         }
-        calibrationStep = 0; calibrationFailed = true; Serial.println("CALIBRATION rejected; retry");
+        calibrationStep = 0; calibrationFailed = true; Serial.println("CALIBRACAO rejeitada; tentar novamente");
       }
       renderCalibration(calibrationStep, calibrationFailed);
     }
@@ -96,7 +96,7 @@ void calibrateSample(bool pressed, const TS_Point& raw) {
   if (millis() - calibrationPressStart >= 350 && calibrationSamples >= 8) {
     calibrationRaw[calibrationStep][0] = calibrationSumX / calibrationSamples;
     calibrationRaw[calibrationStep][1] = calibrationSumY / calibrationSamples;
-    Serial.printf("CALIBRATION point=%d raw=%d,%d\n", calibrationStep,
+    Serial.printf("CALIBRACAO ponto=%d bruto=%d,%d\n", calibrationStep,
                   calibrationRaw[calibrationStep][0], calibrationRaw[calibrationStep][1]);
     ++calibrationStep; calibrationWaitRelease = true;
   }
@@ -124,7 +124,7 @@ void pollTouch() {
 }
 void setup() {
   Serial.begin(115200); delay(200);
-  Serial.println("\nBengaluru CYD landscape v3.1 / 320x240 / IST / touch");
+  Serial.println("\nEstacao CYD pt-BR / 320x240 / touch");
   if (!beginDisplay()) { Serial.println("FATAL: screen buffer allocation failed"); while (true) delay(1000); }
   if (!LittleFS.begin(false)) {
     tft.setTextDatum(MC_DATUM); tft.setTextColor(TFT_RED, TFT_BLACK);

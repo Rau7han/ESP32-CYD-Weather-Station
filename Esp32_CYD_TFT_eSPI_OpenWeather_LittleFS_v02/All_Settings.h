@@ -9,10 +9,10 @@
 #include "Secrets.example.h"
 #endif
 
-inline constexpr char CITY_NAME[] = "Bengaluru";
-inline constexpr char LATITUDE[] = "12.9719";
-inline constexpr char LONGITUDE[] = "77.5937";
-inline constexpr char TIMEZONE_POSIX[] = "IST-5:30";
+inline constexpr char CITY_NAME[] = "Sorocaba";
+inline constexpr char LATITUDE[] = "-23.5015";
+inline constexpr char LONGITUDE[] = "-47.4526";
+inline constexpr char TIMEZONE_POSIX[] = "BRT3";
 inline constexpr uint32_t UPDATE_INTERVAL_MS = 15UL * 60UL * 1000UL;
 inline constexpr uint32_t RETRY_INTERVAL_MS = 60UL * 1000UL;
 inline constexpr uint32_t AUTO_PAGE_INTERVAL_MS = 6500;

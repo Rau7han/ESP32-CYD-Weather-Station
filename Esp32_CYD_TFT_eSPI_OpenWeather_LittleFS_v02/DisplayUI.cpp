@@ -5,6 +5,7 @@
 #include "All_Settings.h"
 #include "NTP_Time.h"
 #include "WeatherNetwork.h"
+#include "Language_PT_BR.h"
 #include <LittleFS.h>
 #include <TJpg_Decoder.h>
 #include <WiFi.h>
@@ -17,7 +18,7 @@ constexpr uint16_t BG = TFT_BLACK;
 constexpr uint16_t WHITE = 0xF7BF, MUTED = 0xADFA, YELLOW = 0xF727;
 constexpr uint16_t CYAN = 0x667F, LINE = 0x220A, GREEN = 0x47B0, ORANGE = 0xFDC9;
 int selectedFont = 0, fileCount = 0, badFiles = 0, clippingWarnings = 0;
-const char* pageNames[] = {"Home", "Forecast", "Conditions", "System"};
+const char* pageNames[] = {Lang::HOME, Lang::FORECAST, Lang::CONDITIONS, Lang::SYSTEM};
 void font(int id) {
   if (selectedFont == id) return;
   screen.unloadFont(); screen.setTextSize(1);
@@ -30,7 +31,11 @@ void text(String value, int x, int y, int width, uint16_t color = WHITE, int fon
   font(fontId);
   if (x < 0 || x + width > 320 || y < 0 || y + screen.fontHeight() > 240) ++clippingWarnings;
   if (screen.textWidth(value) > width) {
-    while (value.length() && screen.textWidth(value + "..") > width) value.remove(value.length() - 1);
+    while (value.length() && screen.textWidth(value + "..") > width) {
+ size_t cut = value.length() - 1;
+ while (cut > 0 && (static_cast<uint8_t>(value[cut]) & 0xc0) == 0x80) --cut;
+ value.remove(cut);
+}
     value += "..";
   }
   int start = x;
@@ -116,28 +121,28 @@ MoonInfo moonInfo() {
 }
 void home(const WeatherState& s, bool refreshing) {
   const CurrentWeather& current = s.current; const WeatherPoint& p = current.point;
-  String date = clockValid() ? localTimeText(time(nullptr), "%a %b %d") : "SYNCING CLOCK"; date.toUpperCase();
+  String date = clockValid() ? localWeekdayShort(time(nullptr)) + " " + localTimeText(time(nullptr), "%d/%m") : "SINCRONIZANDO"; date.toUpperCase();
   text(date, 10, 6, 126, WHITE);
-  text(refreshing ? "Updating..." : current.valid ? String(stale(s) ? "Stale " : "Updated ") + localTimeText(current.fetched, "%d %b %H:%M") : "Waiting for weather", 143, 6, 167, stale(s) ? ORANGE : CYAN, 1, 2);
+  text(refreshing ? "Atualizando..." : current.valid ? String(stale(s) ? "Antigo " : "Atual. ") + localTimeText(current.fetched, "%d/%m %H:%M") : "Aguardando dados", 143, 6, 167, stale(s) ? ORANGE : CYAN, 1, 2);
   divider(21);
   text(clockValid() ? localTimeText(time(nullptr)) : "--:--", 10, 31, 120, YELLOW, 3);
   temperatureText(p.temperature, current.valid, 205, 31, 105, YELLOW, 0, true);
   weatherIcon(p, 135, 27, 56, true);
-  text(current.valid ? p.condition : "Connecting", 118, 80, 89, WHITE, 1, 1);
+  text(current.valid ? p.condition : "Conectando", 118, 80, 89, WHITE, 1, 1);
   text(CITY_NAME, 213, 73, 97, WHITE, 2, 2);
   text(current.valid ? number(p.pressure) + " hPa" : "-- hPa", 12, 85, 98, CYAN);
   text("UV " + uvText(s), 224, 90, 86, uvColor(s), 1, 2);
   divider(101);
   for (int i = 0; i < 4; ++i) {
     const DayForecast& d = s.days[i]; const int x = 10 + i * 75;
-    String day = localTimeText(static_cast<time_t>(d.localDay) * 86400 - IST_OFFSET_SECONDS, "%a"); day.toUpperCase();
+    String day = localWeekdayShort(d.representative.timestamp); day.toUpperCase();
     text(d.valid ? day : "---", x, 107, 74, YELLOW, 1, 1);
     text(d.valid ? number(d.high) + " / " + number(d.low) + " C" : "-- / --", x, 120, 74, WHITE, 1, 1);
     weatherIcon(d.representative, x + 20, 134, 34);
     if (i < 3) screen.drawFastVLine(x + 74, 106, 63, LINE);
   }
   divider(173);
-  const char* labels[] = {"SUNRISE", "SUNSET", "", "CLOUD", "HUMIDITY"};
+  const char* labels[] = {"SOL NASCE", "SOL SE POE", "", "NUVENS", "UMIDADE"};
   const MoonInfo moon = moonInfo();
   for (int i = 0; i < 5; ++i) {
     const int x = 10 + i * 60;
@@ -157,24 +162,24 @@ void home(const WeatherState& s, bool refreshing) {
   }
 }
 void forecastPage(const WeatherState& s) {
-  header("Four-day forecast");
+  header("Previsao para 4 dias");
   for (int i = 0; i < 4; ++i) {
     const DayForecast& d = s.days[i]; const WeatherPoint& p = d.representative; const int y = 29 + i * 48;
-    if (!d.valid) { text("Waiting for forecast data", 12, y + 12, 296, MUTED, 2, 1); continue; }
+    if (!d.valid) { text("Aguardando previsao", 12, y + 12, 296, MUTED, 2, 1); continue; }
     weatherIcon(p, 10, y + 3, 38);
-    String date = localTimeText(p.timestamp, "%a %d"); date.toUpperCase();
+    String date = localWeekdayShort(p.timestamp) + " " + localTimeText(p.timestamp, "%d"); date.toUpperCase();
     text(date, 55, y, 80, YELLOW);
     text(number(d.high) + "/" + number(d.low) + " C", 136, y, 77, WHITE);
-    text("Rain " + number(d.rain, 1) + "mm", 215, y, 95, CYAN, 1, 2);
+    text("Chuva " + number(d.rain, 1) + "mm", 215, y, 95, CYAN, 1, 2);
     text(p.description, 55, y + 12, 250, WHITE);
     text("H " + String(p.humidity) + "%  P " + String(p.pressure) + "hPa", 55, y + 25, 157, CYAN);
     text("W " + number(p.wind, 1) + " " + windDirection(p.windDegrees), 215, y + 25, 95, WHITE, 1, 2);
     if (i < 3) divider(y + 42);
   }
-  text("3h samples / daily min-max / wind m/s", 12, 214, 296, MUTED, 1, 1);
+  text("Dados 3h / min-max / vento m/s", 12, 214, 296, MUTED, 1, 1);
 }
 void conditionsPage(const WeatherState& s) {
-  header("Current conditions");
+  header("Condicoes atuais");
   const WeatherPoint& p = s.current.point; const bool valid = s.current.valid;
   text(CITY_NAME, 75, 29, 170, CYAN, 2, 1);
   weatherIcon(p, 15, 45, 40);
@@ -182,7 +187,7 @@ void conditionsPage(const WeatherState& s) {
   bitmap(String("/wind/") + windDirection(p.windDegrees) + ".bmp", 265, 45, 40);
   text(valid ? String(p.description) : s.status, 12, 89, 296, YELLOW, 1, 1);
   divider(102);
-  const String labels[] = {"Wind speed", "Wind direction", "Humidity", "Pressure", "Cloud cover", "Visibility", "Rain / last hour", "UV / hourly model"};
+  const String labels[] = {"Veloc. vento", "Direcao vento", "Umidade", "Pressao", "Nebulosidade", "Visibilidade", "Chuva / last hour", "Indice UV"};
   const String values[] = {number(p.wind, 1) + " m/s", String(windDirection(p.windDegrees)) + " " + String(p.windDegrees) + " deg", String(p.humidity) + "%", String(p.pressure) + " hPa", String(p.clouds) + "%", number(p.visibility / 1000.0, 1) + " km", number(p.rain, 1) + " mm", uvText(s)};
   screen.drawFastVLine(160, 109, 109, LINE);
   for (int i = 0; i < 8; ++i) {
@@ -191,22 +196,22 @@ void conditionsPage(const WeatherState& s) {
     text(i == 7 ? values[i] : valid ? values[i] : "--", x, y + 10, 136, i == 7 ? uvColor(s) : WHITE, 2);
   }
 }
-String httpText(int code) { return code == 200 ? "OK" : code == 0 ? "Waiting" : String(code); }
+String httpText(int code) { return code == 200 ? "OK" : code == 0 ? "Aguardando" : String(code); }
 void systemPage(const WeatherState& s, bool autoCycle, bool refreshing) {
-  header("System information");
-  text("Bengaluru Weather", 12, 29, 296, WHITE, 2, 1);
-  const String labels[] = {"Display", "Clock", "Wi-Fi", "Weather / forecast", "UV (Open-Meteo)", "Assets / heap", "Observed / UV hour", "Next update"};
+  header("Informacoes do sistema");
+  text("Estacao meteorologica", 12, 29, 296, WHITE, 2, 1);
+  const String labels[] = {"Tela", "Relogio", "Wi-Fi", "Tempo / previsao", "UV (Open-Meteo)", "Arquivos / heap", "Medicao / UV", "Proxima atualiz."};
   const uint32_t remaining = weatherNextRefreshSeconds();
   char countdown[24];
   snprintf(countdown, sizeof(countdown), "In %02lu:%02lu", static_cast<unsigned long>(remaining / 60), static_cast<unsigned long>(remaining % 60));
-  const String values[] = {"320 x 240 / touch", clockValid() ? localTimeText(time(nullptr), "%H:%M:%S") + " IST" : "NTP syncing", WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) + " dBm" : "Offline", httpText(s.currentHttp) + " / " + httpText(s.forecastHttp) + " / key " + String(s.activeKey), httpText(s.uvHttp) + " / CAMS", String(fileCount) + " files / " + String(ESP.getFreeHeap() / 1024) + " KB", (s.current.valid ? localTimeText(s.current.point.timestamp) : "--:--") + " / " + localTimeText(s.uvTimestamp), refreshing ? "Updating now" : remaining ? String(countdown) : "Starting..."};
+  const String values[] = {"320 x 240 / touch", clockValid() ? localTimeText(time(nullptr), "%H:%M:%S") + " " + TIMEZONE_POSIX : "Sincronizando NTP", WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) + " dBm" : "Desconectado", httpText(s.currentHttp) + " / " + httpText(s.forecastHttp) + " / chave " + String(s.activeKey), httpText(s.uvHttp) + " / CAMS", String(fileCount) + " arquivos / " + String(ESP.getFreeHeap() / 1024) + " KB", (s.current.valid ? localTimeText(s.current.point.timestamp) : "--:--") + " / " + localTimeText(s.uvTimestamp), refreshing ? "Atualizando" : remaining ? String(countdown) : "Iniciando..."};
   for (int i = 0; i < 8; ++i) {
     const int y = 54 + i * 14;
     text(labels[i], 12, y, 135, YELLOW);
     text(values[i], 147, y, 161, WHITE, 1, 2);
   }
   text(s.status, 12, 171, 296, stale(s) ? ORANGE : CYAN, 1, 1);
-  const char* buttons[] = {refreshing ? "Updating..." : "Refresh", autoCycle ? "Auto: on" : "Auto: off", "Calibrate"};
+  const char* buttons[] = {refreshing ? "Atualizando..." : "Atualizar", autoCycle ? "Auto: ligado" : "Auto: deslig.", "Calibrar"};
   for (int i = 0; i < 3; ++i) {
     const int x = 10 + i * 102;
     screen.drawRoundRect(x, 190, 96, 26, 4, LINE);
@@ -248,7 +253,7 @@ bool beginDisplay() {
 void showBootSplash() {
   TJpgDec.setJpgScale(1); TJpgDec.setSwapBytes(true); TJpgDec.setCallback(jpgOutput);
   if (LittleFS.exists("/splash/OpenWeather.jpg")) TJpgDec.drawFsJpg(40, 36, "/splash/OpenWeather.jpg", LittleFS);
-  tft.setTextColor(TFT_CYAN, BG); tft.setTextDatum(MC_DATUM); tft.drawString("Bengaluru / IST / touch", 160, 194, 2);
+  tft.setTextColor(TFT_CYAN, BG); tft.setTextDatum(MC_DATUM); tft.drawString("Estacao / Brasil / toque", 160, 194, 2);
 }
 void auditAssets() {
   fileCount = badFiles = 0;
@@ -264,13 +269,13 @@ void renderPage(const WeatherState& weather, int page, bool autoCycle, bool refr
     case 3: systemPage(weather, autoCycle, refreshing); break;
   }
   footer(wrapPage(page), refreshing); screen.pushSprite(0, 0);
-  if (clippingWarnings) Serial.printf("Display bounds errors: %d\n", clippingWarnings);
+  if (clippingWarnings) Serial.printf("Tela bounds errors: %d\n", clippingWarnings);
 }
 void renderCalibration(int step, bool failed) {
-  screen.fillSprite(BG); header("Touch calibration");
-  text(failed ? "Try again: hold each target steadily" : "Hold each target, then release", 12, 86, 296, WHITE, 1, 1);
+  screen.fillSprite(BG); header("Calibracao do toque");
+  text(failed ? "Tente novamente: segure o alvo por 1s" : "Segure o alvo por 1s e solte", 12, 86, 296, WHITE, 1, 1);
   text("Point " + String(step + 1) + " of 4 / saved automatically", 12, 107, 296, CYAN, 1, 1);
-  text("Long press any page to recalibrate", 12, 128, 296, MUTED, 1, 1);
+  text("Pressione por 2s para recalibrar", 12, 128, 296, MUTED, 1, 1);
   const int xs[] = {20, 300, 300, 20}, ys[] = {20, 20, 200, 200};
   screen.drawCircle(xs[step], ys[step], 10, YELLOW);
   screen.drawFastHLine(xs[step] - 14, ys[step], 29, YELLOW);

@@ -39,7 +39,7 @@ int fetchOpenWeather(const char* endpoint, JsonDocument& doc, JsonDocument& filt
   for (int key = 0; key < 2; ++key) {
     doc.clear();
     const String url = String("https://api.openweathermap.org/data/2.5/") + endpoint +
-      "?lat=" + LATITUDE + "&lon=" + LONGITUDE + "&units=metric&lang=en&appid=" + OPENWEATHER_KEYS[key];
+      "?lat=" + LATITUDE + "&lon=" + LONGITUDE + "&units=metric&lang=pt_br&appid=" + OPENWEATHER_KEYS[key];
     const int status = fetchJson(url, doc, filter);
     if (status == 200) { activeKey = key + 1; return status; }
     if (key == 1 || OPENWEATHER_KEYS[1][0] == '\0' || (status != 401 && status != 403 && status != 429)) return status;
@@ -98,22 +98,22 @@ void networkTask(void*) {
     if (!manual && static_cast<int32_t>(millis() - nextFetch.load()) < 0) { vTaskDelay(pdMS_TO_TICKS(100)); continue; }
     refreshing.store(true); WeatherState next; copyWeatherState(next);
     if (WiFi.status() != WL_CONNECTED) {
-      strlcpy(next.status, "Reconnecting to Wi-Fi", sizeof(next.status)); publish(next);
+      strlcpy(next.status, "Reconectando Wi-Fi", sizeof(next.status)); publish(next);
       // Let the initial WiFi.begin() finish before trying a reconnect.
       if (millis() >= 15000) WiFi.reconnect();
       const uint32_t started = millis();
       while (WiFi.status() != WL_CONNECTED && millis() - started < 15000) vTaskDelay(pdMS_TO_TICKS(100));
     }
     if (WiFi.status() != WL_CONNECTED) {
-      strlcpy(next.status, "Wi-Fi offline; retry in 60s", sizeof(next.status));
+      strlcpy(next.status, "Wi-Fi offline; nova tentativa em 60s", sizeof(next.status));
       next.currentHttp = next.forecastHttp = next.uvHttp = -10;
     } else {
       const uint32_t started = millis();
       while (!clockValid() && millis() - started < 15000) vTaskDelay(pdMS_TO_TICKS(100));
-      strlcpy(next.status, "Updating weather and UV", sizeof(next.status)); publish(next);
+      strlcpy(next.status, "Atualizando tempo e UV", sizeof(next.status)); publish(next);
       fetchCurrent(next); fetchForecast(next); fetchUv(next);
       if (next.currentHttp == 200 && next.forecastHttp == 200 && next.uvHttp == 200)
-        strlcpy(next.status, "All sources up to date", sizeof(next.status));
+        strlcpy(next.status, "Dados atualizados", sizeof(next.status));
       else snprintf(next.status, sizeof(next.status), "API status: %d / %d / %d", next.currentHttp, next.forecastHttp, next.uvHttp);
     }
     const bool success = next.currentHttp == 200 && next.forecastHttp == 200 && next.uvHttp == 200;
@@ -137,5 +137,5 @@ uint32_t weatherNextRefreshSeconds() {
 void startWeatherNetwork() {
   stateMutex = xSemaphoreCreateMutex();
   if (!stateMutex || xTaskCreatePinnedToCore(networkTask, "weather", 12288, nullptr, 1, nullptr, 0) != pdPASS)
-    Serial.println("ERROR: could not start weather worker");
+    Serial.println("ERRO: tarefa meteorologica nao iniciou");
 }

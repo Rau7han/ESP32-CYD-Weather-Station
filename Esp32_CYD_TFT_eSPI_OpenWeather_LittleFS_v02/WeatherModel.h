@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <time.h>
-constexpr int IST_OFFSET_SECONDS = 19800;
+
 constexpr int DISPLAY_WIDTH = 320, DISPLAY_HEIGHT = 240, PAGE_COUNT = 4;
 struct WeatherPoint {
   time_t timestamp = 0;
@@ -35,7 +35,7 @@ struct WeatherState {
   char status[96] = "Connecting to Wi-Fi";
   uint32_t generation = 0;
 };
-int32_t bengaluruDay(time_t utc);
+int32_t localWeatherDay(time_t utc);
 void buildDailyForecast(const WeatherPoint* points, size_t count, time_t nowUtc, DayForecast (&days)[4]);
 const char* weatherIconName(uint16_t conditionId, const char* apiIcon);
 const char* windDirection(int degrees);

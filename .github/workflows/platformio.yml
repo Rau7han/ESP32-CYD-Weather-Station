@@ -1,0 +1,23 @@
+name: Firmware ESP32-CYD (PlatformIO)
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main, 'feature/**']
+  workflow_dispatch:
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar PlatformIO
+        run: python -m pip install platformio
+      - name: Compilar firmware CYD
+        run: pio run -e cyd_ili9341
+      - name: Executar testes de modelo e JSON
+        run: python tools/test.py
+      - name: Gerar imagem LittleFS
+        run: pio run -e cyd_ili9341 -t buildfs

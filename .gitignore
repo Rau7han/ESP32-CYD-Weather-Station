@@ -9,3 +9,6 @@
 *.elf
 *.map
 .DS_Store
+
+.pio/
+.vscode/ipch/

@@ -3,31 +3,34 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <cstdlib>
+#include <ctime>
 int main() {
-  // A UTC date boundary occurs 5.5 hours after Bengaluru's boundary.
-  const time_t day = 20750;
-  const time_t midnightIst = day * 86400 - IST_OFFSET_SECONDS;
-  assert(bengaluruDay(midnightIst - 1) == day - 1);
-  assert(bengaluruDay(midnightIst) == day);
-  WeatherPoint points[7];
-  points[0].timestamp = midnightIst + 10 * 3600; // Today must not enter tomorrow's row.
+  setenv("TZ", "BRT3", 1); tzset();
+  const time_t midnight = 20750LL * 86400 + 3 * 3600;
+  const int32_t day = localWeatherDay(midnight);
+  assert(localWeatherDay(midnight - 1) == day - 1);
+  assert(localWeatherDay(midnight) == day);
+  WeatherPoint points[7] = {};
+  points[0].timestamp = midnight + 10 * 3600;
   points[0].low = -99; points[0].high = 99;
   const int hours[] = {1, 7, 10, 13, 19, 22};
   for (int i = 1; i < 7; ++i) {
-    points[i].timestamp = midnightIst + 86400 + hours[i - 1] * 3600;
+    points[i].timestamp = midnight + 86400 + hours[i - 1] * 3600;
     points[i].low = 15 + i; points[i].high = 20 + i; points[i].rain = 0.5;
     points[i].precipitationProbability = i / 10.0f;
   }
-  DayForecast days[4]; buildDailyForecast(points, 7, midnightIst + 20 * 3600, days);
+  DayForecast days[4]; buildDailyForecast(points, 7, midnight + 20 * 3600, days);
   assert(days[0].valid && days[0].samples == 6);
   assert(days[0].low == 16 && days[0].high == 26 && days[0].rain == 3.0f);
   assert(std::fabs(days[0].probability - 0.6) < 0.001);
-  assert(days[0].representative.timestamp == midnightIst + 86400 + 13 * 3600);
-  assert(!days[1].valid && !days[2].valid && !days[3].valid);
-  // No hard-coded offset of N array entries: missing slots cannot shift the day.
-  points[0].timestamp = midnightIst + 3 * 86400 + 12 * 3600;
-  buildDailyForecast(points, 1, midnightIst, days);
+  assert(days[0].representative.timestamp == midnight + 86400 + 13 * 3600);
+  points[0].timestamp = midnight + 3 * 86400 + 12 * 3600;
+  buildDailyForecast(points, 1, midnight, days);
   assert(!days[0].valid && !days[1].valid && days[2].valid && !days[3].valid);
+  setenv("TZ", "IST-5:30", 1); tzset();
+  assert(localWeatherDay(midnight + 19 * 3600) == day + 1);
+  setenv("TZ", "BRT3", 1); tzset();
   assert(std::strcmp(weatherIconName(800, "01n"), "clear-night") == 0);
   assert(std::strcmp(weatherIconName(801, "02d"), "partly-cloudy-day") == 0);
   assert(std::strcmp(weatherIconName(500, "10d"), "lightRain") == 0);
@@ -59,5 +62,5 @@ int main() {
   int outsideX, outsideY;
   mapTouch(TouchCalibration{}, -999, 9999, outsideX, outsideY);
   assert(outsideX == 0 && outsideY == 239);
-  std::cout << "PASS: IST date rollover, daily aggregation, icons, navigation, affine calibration\n";
+  std::cout << "PASS: local date rollover, daily aggregation, icons, navigation, affine calibration\n";
 }
