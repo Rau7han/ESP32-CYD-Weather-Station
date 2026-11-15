@@ -2,17 +2,32 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-int32_t bengaluruDay(time_t utc) { return static_cast<int32_t>((utc + IST_OFFSET_SECONDS) / 86400); }
+static int32_t civilDay(int y, unsigned m, unsigned d) {
+ y -= m <= 2;
+ int era = (y >= 0 ? y : y - 399) / 400;
+ unsigned yoe = static_cast<unsigned>(y - era * 400);
+ unsigned doy = (153 * (m > 2 ? m - 3 : m + 9) + 2) / 5 + d - 1;
+ unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+ return era * 146097 + static_cast<int>(doe) - 719468;
+}
+int32_t localWeatherDay(time_t utc) {
+ struct tm local = {}; localtime_r(&utc, &local);
+ return civilDay(local.tm_year + 1900, local.tm_mon + 1, local.tm_mday);
+}
+static int secondsLocal(time_t utc) {
+ struct tm local = {}; localtime_r(&utc, &local);
+ return local.tm_hour * 3600 + local.tm_min * 60 + local.tm_sec;
+}
 void buildDailyForecast(const WeatherPoint* points, size_t count, time_t nowUtc, DayForecast (&days)[4]) {
-  const int32_t today = bengaluruDay(nowUtc);
+  const int32_t today = localWeatherDay(nowUtc);
   for (int i = 0; i < 4; ++i) { days[i] = DayForecast{}; days[i].localDay = today + 1 + i; }
   for (size_t i = 0; i < count; ++i) {
     const WeatherPoint& p = points[i];
-    const int index = bengaluruDay(p.timestamp) - today - 1;
+    const int index = localWeatherDay(p.timestamp) - today - 1;
     if (index < 0 || index > 3) continue;
     DayForecast& day = days[index];
-    const int distance = abs(static_cast<int>((p.timestamp + IST_OFFSET_SECONDS) % 86400) - 43200);
-    const int oldDistance = abs(static_cast<int>((day.representative.timestamp + IST_OFFSET_SECONDS) % 86400) - 43200);
+    const int distance = abs(secondsLocal(p.timestamp) - 43200);
+    const int oldDistance = abs(secondsLocal(day.representative.timestamp) - 43200);
     if (!day.valid || distance < oldDistance) day.representative = p;
     if (!day.valid || p.low < day.low) day.low = p.low;
     if (!day.valid || p.high > day.high) day.high = p.high;

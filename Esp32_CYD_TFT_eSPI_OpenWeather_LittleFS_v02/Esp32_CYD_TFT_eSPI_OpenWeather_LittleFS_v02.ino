@@ -16,7 +16,7 @@
 #include "NTP_Time.h"
 #include "DisplayUI.h"
 
-#ifndef ARDUINO_PARTITION_no_ota
+#if !defined(ARDUINO_PARTITION_no_ota) && !defined(PLATFORMIO)
 #error "In Arduino IDE Tools > Partition Scheme select No OTA (2MB APP/2MB SPIFFS), then upload both the sketch and LittleFS data."
 #endif
 
@@ -124,7 +124,7 @@ void pollTouch() {
 }
 void setup() {
   Serial.begin(115200); delay(200);
-  Serial.println("\nBengaluru CYD landscape v3.1 / 320x240 / IST / touch");
+  Serial.println("\nEstacao CYD pt-BR / 320x240 / touch");
   if (!beginDisplay()) { Serial.println("FATAL: screen buffer allocation failed"); while (true) delay(1000); }
   if (!LittleFS.begin(false)) {
     tft.setTextDatum(MC_DATUM); tft.setTextColor(TFT_RED, TFT_BLACK);
