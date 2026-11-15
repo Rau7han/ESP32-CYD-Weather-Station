@@ -148,8 +148,8 @@ void pollTouch() {
   static uint32_t lastDiagnostic = 0;
   if ((calibrating || touchDiagnostics) && now - lastDiagnostic >= 1000) {
     lastDiagnostic = now;
-    Serial.printf("TOUCH RAW x=%d y=%d z=%d sensed=%d stable=%d etapa=%d espera_solta=%d\n",
-      raw.x, raw.y, raw.z, sensed, stablePressed, calibrationStep, calibrationWaitRelease);
+    Serial.printf("TOUCH RAW x=%d y=%d z=%d sensed=%d stable=%d irq=%d etapa=%d espera_solta=%d\n",
+      raw.x, raw.y, raw.z, sensed, stablePressed, digitalRead(TOUCH_IRQ_PIN), calibrationStep, calibrationWaitRelease);
   }
   if (calibrating) { calibrateSample(stablePressed, raw); return; }
   if (!touchRearm) { if (!stablePressed) touchRearm = true; return; }
@@ -187,6 +187,7 @@ void setup() {
     touchPreferences.getBytes("affine", &touchCalibration, sizeof(touchCalibration));
   Serial.printf("TOUCH ready=%d / SPI dedicado / segure 2s ou envie c\n", touchReady);
   Serial.println("SERIAL: c=calibrar, x=cancelar, t=diagnostico de toque");
+  Serial.println("DIAGNOSTICO: IRQ GPIO36 (normalmente 1 solto, 0 pressionado).");
   WiFi.mode(WIFI_STA); WiFi.setSleep(false); WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD); initClock(); startWeatherNetwork();
   delay(600); lastPageChange = millis(); dirty = true;
