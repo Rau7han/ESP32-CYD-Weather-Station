@@ -29,7 +29,7 @@ int main() {
   buildDailyForecast(points, 1, midnight, days);
   assert(!days[0].valid && !days[1].valid && days[2].valid && !days[3].valid);
   setenv("TZ", "IST-5:30", 1); tzset();
-  assert(localWeatherDay(midnight) == day + 1);
+  assert(localWeatherDay(midnight + 19 * 3600) == day + 1);
   setenv("TZ", "BRT3", 1); tzset();
   assert(std::strcmp(weatherIconName(800, "01n"), "clear-night") == 0);
   assert(std::strcmp(weatherIconName(801, "02d"), "partly-cloudy-day") == 0);
