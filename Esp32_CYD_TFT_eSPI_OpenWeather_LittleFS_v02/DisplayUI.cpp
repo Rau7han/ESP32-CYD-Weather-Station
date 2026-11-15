@@ -121,7 +121,7 @@ MoonInfo moonInfo() {
 }
 void home(const WeatherState& s, bool refreshing) {
   const CurrentWeather& current = s.current; const WeatherPoint& p = current.point;
-  String date = clockValid() ? localTimeText(time(nullptr), "%a %b %d") : "SINCRONIZANDO"; date.toUpperCase();
+  String date = clockValid() ? localWeekdayShort(time(nullptr)) + " " + localTimeText(time(nullptr), "%d/%m") : "SINCRONIZANDO"; date.toUpperCase();
   text(date, 10, 6, 126, WHITE);
   text(refreshing ? "Atualizando..." : current.valid ? String(stale(s) ? "Antigo " : "Atual. ") + localTimeText(current.fetched, "%d %b %H:%M") : "Aguardando dados", 143, 6, 167, stale(s) ? ORANGE : CYAN, 1, 2);
   divider(21);
@@ -196,7 +196,7 @@ void conditionsPage(const WeatherState& s) {
     text(i == 7 ? values[i] : valid ? values[i] : "--", x, y + 10, 136, i == 7 ? uvColor(s) : WHITE, 2);
   }
 }
-String httpText(int code) { return code == 200 ? "OK" : code == 0 ? "Waiting" : String(code); }
+String httpText(int code) { return code == 200 ? "OK" : code == 0 ? "Aguardando" : String(code); }
 void systemPage(const WeatherState& s, bool autoCycle, bool refreshing) {
   header("Informacoes do sistema");
   text("Estacao meteorologica", 12, 29, 296, WHITE, 2, 1);
@@ -204,7 +204,7 @@ void systemPage(const WeatherState& s, bool autoCycle, bool refreshing) {
   const uint32_t remaining = weatherNextAtualizarSeconds();
   char countdown[24];
   snprintf(countdown, sizeof(countdown), "In %02lu:%02lu", static_cast<unsigned long>(remaining / 60), static_cast<unsigned long>(remaining % 60));
-  const String values[] = {"320 x 240 / touch", clockValid() ? localTimeText(time(nullptr), "%H:%M:%S") + " BRT" : "Sincronizando NTP", WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) + " dBm" : "Desconectado", httpText(s.currentHttp) + " / " + httpText(s.forecastHttp) + " / key " + String(s.activeKey), httpText(s.uvHttp) + " / CAMS", String(fileCount) + " files / " + String(ESP.getFreeHeap() / 1024) + " KB", (s.current.valid ? localTimeText(s.current.point.timestamp) : "--:--") + " / " + localTimeText(s.uvTimestamp), refreshing ? "Atualizando" : remaining ? String(countdown) : "Iniciando..."};
+  const String values[] = {"320 x 240 / touch", clockValid() ? localTimeText(time(nullptr), "%H:%M:%S") + " " + TIMEZONE_POSIX : "Sincronizando NTP", WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) + " dBm" : "Desconectado", httpText(s.currentHttp) + " / " + httpText(s.forecastHttp) + " / key " + String(s.activeKey), httpText(s.uvHttp) + " / CAMS", String(fileCount) + " files / " + String(ESP.getFreeHeap() / 1024) + " KB", (s.current.valid ? localTimeText(s.current.point.timestamp) : "--:--") + " / " + localTimeText(s.uvTimestamp), refreshing ? "Atualizando" : remaining ? String(countdown) : "Iniciando..."};
   for (int i = 0; i < 8; ++i) {
     const int y = 54 + i * 14;
     text(labels[i], 12, y, 135, YELLOW);
@@ -253,7 +253,7 @@ bool beginTela() {
 void showBootSplash() {
   TJpgDec.setJpgScale(1); TJpgDec.setSwapBytes(true); TJpgDec.setCallback(jpgOutput);
   if (LittleFS.exists("/splash/OpenWeather.jpg")) TJpgDec.drawFsJpg(40, 36, "/splash/OpenWeather.jpg", LittleFS);
-  tft.setTextColor(TFT_CYAN, BG); tft.setTextDatum(MC_DATUM); tft.drawString("Bengaluru / BRT / touch", 160, 194, 2);
+  tft.setTextColor(TFT_CYAN, BG); tft.setTextDatum(MC_DATUM); tft.drawString("Estacao / Brasil / toque", 160, 194, 2);
 }
 void auditAssets() {
   fileCount = badFiles = 0;
