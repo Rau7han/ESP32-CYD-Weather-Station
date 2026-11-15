@@ -130,9 +130,14 @@ void pollTouch() {
   static uint32_t lastPoll = 0;
   if (millis() - lastPoll < 12) return;
   lastPoll = millis();
-  TS_Point raw = {0, 0, 0};
+  static TS_Point lastValidRaw(0, 0, 0);
+  TS_Point raw(0, 0, 0);
   bool sensed = touchPanel.touched();
-  if (sensed) { raw = touchPanel.getPoint(); sensed = raw.z >= 200; }
+  if (sensed) {
+    raw = touchPanel.getPoint(); sensed = raw.z >= 200;
+    if (sensed) lastValidRaw = raw;
+  }
+  if (!sensed && stablePressed) raw = lastValidRaw;
   const uint32_t now = millis();
   if (sensed != candidatePressed) { candidatePressed = sensed; candidateSince = now; }
   if (stablePressed != candidatePressed &&
