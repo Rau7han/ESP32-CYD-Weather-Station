@@ -1,7 +1,7 @@
 /* Landscape adaptation of the original Daniel Eichhorn / ThingPulse and Bodmer
  * weather-station layout. MIT attribution is retained in THIRD_PARTY_NOTICES.txt.
  * Page geometry follows the user's 320x240 HTML reference. */
-#include "TelaUI.h"
+#include "DisplayUI.h"
 #include "All_Settings.h"
 #include "NTP_Time.h"
 #include "WeatherNetwork.h"
