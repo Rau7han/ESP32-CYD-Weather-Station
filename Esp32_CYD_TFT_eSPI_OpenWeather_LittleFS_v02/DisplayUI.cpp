@@ -123,7 +123,7 @@ void home(const WeatherState& s, bool refreshing) {
   const CurrentWeather& current = s.current; const WeatherPoint& p = current.point;
   String date = clockValid() ? localWeekdayShort(time(nullptr)) + " " + localTimeText(time(nullptr), "%d/%m") : "SINCRONIZANDO"; date.toUpperCase();
   text(date, 10, 6, 126, WHITE);
-  text(refreshing ? "Atualizando..." : current.valid ? String(stale(s) ? "Antigo " : "Atual. ") + localTimeText(current.fetched, "%d %b %H:%M") : "Aguardando dados", 143, 6, 167, stale(s) ? ORANGE : CYAN, 1, 2);
+  text(refreshing ? "Atualizando..." : current.valid ? String(stale(s) ? "Antigo " : "Atual. ") + localTimeText(current.fetched, "%d/%m %H:%M") : "Aguardando dados", 143, 6, 167, stale(s) ? ORANGE : CYAN, 1, 2);
   divider(21);
   text(clockValid() ? localTimeText(time(nullptr)) : "--:--", 10, 31, 120, YELLOW, 3);
   temperatureText(p.temperature, current.valid, 205, 31, 105, YELLOW, 0, true);
@@ -204,7 +204,7 @@ void systemPage(const WeatherState& s, bool autoCycle, bool refreshing) {
   const uint32_t remaining = weatherNextRefreshSeconds();
   char countdown[24];
   snprintf(countdown, sizeof(countdown), "In %02lu:%02lu", static_cast<unsigned long>(remaining / 60), static_cast<unsigned long>(remaining % 60));
-  const String values[] = {"320 x 240 / touch", clockValid() ? localTimeText(time(nullptr), "%H:%M:%S") + " " + TIMEZONE_POSIX : "Sincronizando NTP", WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) + " dBm" : "Desconectado", httpText(s.currentHttp) + " / " + httpText(s.forecastHttp) + " / key " + String(s.activeKey), httpText(s.uvHttp) + " / CAMS", String(fileCount) + " files / " + String(ESP.getFreeHeap() / 1024) + " KB", (s.current.valid ? localTimeText(s.current.point.timestamp) : "--:--") + " / " + localTimeText(s.uvTimestamp), refreshing ? "Atualizando" : remaining ? String(countdown) : "Iniciando..."};
+  const String values[] = {"320 x 240 / touch", clockValid() ? localTimeText(time(nullptr), "%H:%M:%S") + " " + TIMEZONE_POSIX : "Sincronizando NTP", WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) + " dBm" : "Desconectado", httpText(s.currentHttp) + " / " + httpText(s.forecastHttp) + " / chave " + String(s.activeKey), httpText(s.uvHttp) + " / CAMS", String(fileCount) + " arquivos / " + String(ESP.getFreeHeap() / 1024) + " KB", (s.current.valid ? localTimeText(s.current.point.timestamp) : "--:--") + " / " + localTimeText(s.uvTimestamp), refreshing ? "Atualizando" : remaining ? String(countdown) : "Iniciando..."};
   for (int i = 0; i < 8; ++i) {
     const int y = 54 + i * 14;
     text(labels[i], 12, y, 135, YELLOW);
@@ -244,7 +244,7 @@ void scanDirectory(const char* path) {
   }
 }
 }
-bool beginTela() {
+bool beginDisplay() {
   tft.begin(); tft.setRotation(DISPLAY_ROTATION); tft.fillScreen(BG);
   // A 76.8 KB buffer keeps enough heap for TLS while allowing flicker-free pages.
   screen.setColorDepth(8);
