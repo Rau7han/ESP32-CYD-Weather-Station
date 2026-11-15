@@ -273,7 +273,7 @@ void renderPage(const WeatherState& weather, int page, bool autoCycle, bool refr
 }
 void renderCalibration(int step, bool failed) {
   screen.fillSprite(BG); header("Calibracao do toque");
-  text(failed ? "Tente novamente: toque no alvo" : "Toque no alvo e solte", 12, 86, 296, WHITE, 1, 1);
+  text(failed ? "Tente novamente: segure o alvo por 1s" : "Segure o alvo por 1s e solte", 12, 86, 296, WHITE, 1, 1);
   text("Point " + String(step + 1) + " of 4 / saved automatically", 12, 107, 296, CYAN, 1, 1);
   text("Pressione por 2s para recalibrar", 12, 128, 296, MUTED, 1, 1);
   const int xs[] = {20, 300, 300, 20}, ys[] = {20, 20, 200, 200};
